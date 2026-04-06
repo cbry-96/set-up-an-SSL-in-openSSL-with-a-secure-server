@@ -1,3 +1,3 @@
 {
-  "Apache Service": "✅ Apache is running.","SSL Module": "❌ The SSL module is NOT enabled. Enable it with: sudo a2enmod ssl && sudo systemctl restart apache2","Certificate File": "❌ No certificate file found. Check your Apache SSL configuration.","Key File": "❌ No private key file found. Check your Apache SSL configuration.","Certificate Validity": "❌ Cannot validate the certificate. File not found or invalid format."
+  "Apache Service": "✅ Apache is running.","SSL Module": "✅ The SSL module is enabled.","Certificate File": "✅ Found certificate at /etc/ssl/certs/myserver.crt","Key File": "✅ Found private key at /etc/ssl/private/myserver.key","Certificate Validity": "✅ Valid certificate. Common Name (CN): netforce.com, emailAddress=admin@netforce.com","Days Until Expiry": "✅ The certificate will expire in 364 days."
 }
