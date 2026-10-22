@@ -1,181 +1,139 @@
-<!-- hide -->
-# Setting Up a Secure Server with SSL/TLS Using OpenSSL
+# Configuración de SSL/TLS con OpenSSL y Apache
 
-> By [@rosinni](https://github.com/rosinni) and [other contributors](https://github.com/breatheco-de/set-up-an-SSL-in-openSSL-with-a-secure-server/graphs/contributors) at [4Geeks Academy](https://4geeksacademy.co/)
+![Categoría](https://img.shields.io/badge/Categor%C3%ADa-SSL%2FTLS%20%2F%20PKI-blue)
+![Herramienta](https://img.shields.io/badge/Herramienta-OpenSSL%20%2B%20Apache-green)
+![Plataforma](https://img.shields.io/badge/Plataforma-Debian%20%2B%20VirtualBox-orange)
+![Bootcamp](https://img.shields.io/badge/4Geeks-Cybersecurity%20Bootcamp-blue)
+![Estado](https://img.shields.io/badge/Estado-Completado-brightgreen)
 
-[![build by developers](https://img.shields.io/badge/build_by-Developers-blue)](https://4geeks.com)
-[![build by developers](https://img.shields.io/twitter/follow/4geeksacademy?style=social&logo=twitter)](https://twitter.com/4geeksacademy)
+Laboratorio de configuración de un **servidor HTTPS seguro** utilizando **OpenSSL** para la generación de certificados y **Apache** como servidor web, implementando comunicación cifrada con TLS en un entorno virtualizado.
 
-*These instructions are [available in Spanish](https://github.com/breatheco-de/set-up-an-SSL-in-openSSL-with-a-secure-server/blob/main/README.es.md)*
+---
 
-### Before Starting...
+## Aviso ético
 
-> We need you! These exercises are created and maintained in collaboration with people like you. If you find any errors or typos, please contribute and/or report them.
+> Este ejercicio se realizó sobre una máquina virtual de prueba en un entorno aislado. El certificado generado es autofirmado y de uso exclusivamente educativo. Las técnicas documentadas tienen fines **exclusivamente educativos, defensivos y de portafolio profesional**.
 
-<!-- endhide -->
+---
 
-## 🌱 How to start this project?
+## Resumen
 
-This exercise aims to teach students how to set up a secure server using OpenSSL to provide secure communications via SSL/TLS.
+| Indicador | Valor |
+|-----------|-------|
+| Objetivo | Configurar un servidor Apache con HTTPS usando un certificado autofirmado |
+| Entorno | Debian VM en VirtualBox con Apache y OpenSSL |
+| Clave generada | RSA 2048 bits |
+| Certificado | Autofirmado, validez 365 días |
+| Dominio configurado | `my-domain.com` (resolución local vía `/etc/hosts`) |
+| Entregable | `report.json` (generado por `check_ssl.sh`) |
+| Contexto | Práctica del Bootcamp de Ciberseguridad de 4Geeks Academy |
 
-### Requirements
+---
 
-* A Debian virtual machine installed in VirtualBox. (we will use the previously configured machine in previous classes).
+## Metodología
 
-## 📝 Instructions
+1. **Generación de clave privada y CSR** — creación de una clave RSA de 2048 bits y una solicitud de firma de certificado (CSR).
+2. **Firma del certificado** — autofirmado del CSR para obtener un certificado X.509 con validez de 365 días.
+3. **Configuración de Apache** — modificación de `default-ssl.conf` con las rutas del certificado y la clave, y configuración del `ServerName`.
+4. **Habilitación de HTTPS** — activación del módulo SSL y del sitio SSL en Apache.
+5. **Resolución DNS local** — mapeo del dominio `my-domain.com` a `127.0.0.1` en `/etc/hosts`.
+6. **Verificación** — acceso a `https://my-domain.com` y confirmación de la conexión cifrada.
 
-* Open this URL and fork the repository https://github.com/breatheco-de/set-up-an-SSL-in-openSSL-with-a-secure-server
+---
 
- ![fork button](https://github.com/4GeeksAcademy/4GeeksAcademy/blob/master/site/src/static/fork_button.png?raw=true)
+## Comandos principales
 
-A new repository will be created in your account.
+```bash
+# Generar clave privada RSA de 2048 bits
+openssl genrsa -out server.key 2048
 
-* Clone the newly created repository into your localhost computer.
-* Once you have cloned successfully, follow the steps below carefully, one by one.
+# Generar CSR (Certificate Signing Request)
+openssl req -new -key server.key -out server.csr
 
-### Step 1: Generate a Private Key and a Certificate Signing Request (CSR):
+# Autofirmar el certificado (validez 365 días)
+openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
 
-In an HTTPS connection, the web server needs to **prove its identity and encrypt the communication**. For this, a digital certificate is used, which contains a public key; this public key is useless without its corresponding private key. The **private key** is a secret file that allows encrypting and decrypting data. Now, we will generate a private key using **OpenSSL**, a command-line tool for creating and managing certificates and cryptography.
+# Habilitar módulo SSL en Apache
+sudo a2enmod ssl
 
-- [ ] Open a terminal and run the following command to generate a 2048-bit RSA private key:
-    ```sh
-    openssl genrsa -out /etc/ssl/private/myserver.key 2048
-    ```
-    > 💡Make sure to protect this private key properly.
+# Habilitar sitio SSL
+sudo a2ensite default-ssl
 
-    Verify that the file was created:
+# Recargar Apache
+sudo systemctl reload apache2
 
-    ```bash
-    ls -l /etc/ssl/private/myserver.key
-    ```
+# Configurar resolución local
+echo "127.0.0.1 my-domain.com" | sudo tee -a /etc/hosts
 
-    Expected result:
+# Verificar la configuración
+bash check_ssl.sh
+```
 
-    ```bash
-    -rw------- 1 root root 1675 Jun  4 18:30 /etc/ssl/private/myserver.key
-    ```
+---
 
-Now we need to make a **Certificate Signing Request (CSR)**. This is a file that contains the **public key** you want to certify and information about your **organization or server** (country, city, name, domain, email, etc.).
+## Configuración de Apache (`default-ssl.conf`)
 
-> This file is usually sent to a **Certificate Authority (CA)**, such as Let's Encrypt or DigiCert, to issue a **valid digital certificate**. In our lab, we will not send it to a CA, but we will **sign it ourselves (self-signed)**. However, the process is the same.
+```apache
+SSLCertificateFile    /ruta/al/server.crt
+SSLCertificateKeyFile /ruta/al/server.key
+ServerName            my-domain.com
+```
 
-- [ ] Use the following command to generate a CSR that will contain the public information to be included in the certificate:
-    ```sh
-    openssl req -new -key /etc/ssl/private/myserver.key -out /etc/ssl/certs/myserver.csr
-    ```
-    **During the process, you will be prompted to enter information about your organization.** 
-    (Here is an example of how you can complete it):
-    * Country Name (2 letter code): ES
-    * State or Province Name (full name): Madrid
-    * Locality Name (eg, city): Madrid
-    * Organization Name (eg, company): MyCompany
-    * Organizational Unit Name (eg, section): IT
-    * Common Name (eg, fully qualified host name): my-domain.com
-    * Email Address: admin@my-domain.com
+---
 
+## Resultado
 
-### Step 2: Sign the CSR to Obtain a Self-Signed Certificate:
-Once we have the `.csr` file (the certificate request), we need to **sign it** to generate the final `.crt` certificate. In a real environment, this step would be done by a **Certificate Authority (CA)**, which would verify your identity and sign the CSR to issue a trusted certificate.
+Al acceder a `https://my-domain.com` desde el navegador de la VM, se muestra la advertencia del certificado autofirmado. Al aceptarla, se carga la página predeterminada de Apache sobre una conexión HTTPS cifrada.
 
+---
 
-- [ ] For the purposes of this practice, we will sign the CSR with our own private key to obtain a self-signed certificate, use the following command (This will generate a self-signed certificate valid for 365 days):
-    ```sh
-    openssl x509 -req -days 365 -in /etc/ssl/certs/myserver.csr -signkey /etc/ssl/private/myserver.key -out /etc/ssl/certs/myserver.crt
-    ```
+## Estructura del repositorio
 
-    - `x509`: Generates a certificate in standard X.509 format.
-    - `-req`: Indicates that the input file is a CSR request.
-    - `-days 365`: The certificate will be valid for 365 days.
-    - `-in /etc/ssl/certs/myserver.csr`: CSR file that we will sign.
-    - `-signkey /etc/ssl/private/myserver.key`: Private key used to sign the CSR.
-    - `-out /etc/ssl/certs/myserver.crt`: Name of the resulting file (the final certificate).
+```
+set-up-an-SSL-in-openSSL-with-a-secure-server/
+├── README.md                 # Documentación del ejercicio (este archivo)
+├── README.es.md              # Instrucciones originales del ejercicio (español)
+├── report.json               # Resultado de la verificación (check_ssl.sh)
+├── assets/
+│   ├── check_ssl.sh          # Script de verificación proporcionado
+│   └── https.png             # Captura del acceso HTTPS
+└── learn.json                # Metadatos del ejercicio
+```
 
-### Step 3: Configure Apache to Use the SSL Certificate:
+---
 
-Now that we have the certificate (`myserver.crt`) and the private key (`myserver.key`), we need to tell Apache to use them when serving content over HTTPS. 
+## Conceptos aplicados
 
-- [ ] Check the SSL configuration file for Apache:
-    ```sh
-    sudo nano /etc/apache2/sites-available/default-ssl.conf
-    ```
+- **PKI (Public Key Infrastructure)** — flujo completo: clave privada → CSR → certificado
+- **TLS/SSL** — cifrado de comunicaciones web
+- **Certificados X.509** — formato estándar de certificados digitales
+- **Apache mod_ssl** — módulo de Apache para HTTPS
+- **Resolución DNS local** — uso de `/etc/hosts` para pruebas
 
-- [ ] Make sure the file contains the following:
-    ```sh
-      <IfModule mod_ssl.c>
-          <VirtualHost _default_:443>
-              ServerAdmin admin@my-domain.com
-              ServerName my-domain.com
+---
 
-              DocumentRoot /var/www/html
+## Herramientas utilizadas
 
-              SSLEngine on
-              SSLCertificateFile /etc/ssl/certs/myserver.crt
-              SSLCertificateKeyFile /etc/ssl/private/myserver.key
+- **OpenSSL** — generación de claves, CSR y certificados
+- **Apache** — servidor web con módulo SSL
+- **Debian** — sistema operativo del servidor
+- **VirtualBox** — virtualización del entorno
 
-              <FilesMatch "\.(cgi|shtml|phtml|php)$">
-                  SSLOptions +StdEnvVars
-              </FilesMatch>
-              <Directory /usr/lib/cgi-bin>
-                  SSLOptions +StdEnvVars
-              </Directory>
+---
 
-              BrowserMatch "MSIE [2-6]" \
-                  nokeepalive ssl-unclean-shutdown \
-                  downgrade-1.0 force-response-1.0
+## Referencias
 
-              BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
+- [OpenSSL — Documentación oficial](https://www.openssl.org/docs/)
+- [Apache — Módulo mod_ssl](https://httpd.apache.org/docs/2.4/mod/mod_ssl.html)
+- [Let's Encrypt — Cómo funciona HTTPS](https://letsencrypt.org/how-it-works/)
 
-          </VirtualHost>
-      </IfModule>
-    ```
+---
 
-    Ensure that:
-    - The `ServerName` matches the **Common Name (CN)** of the self-signed certificate.
-    - `SSLEngine on`: The SSL engine for this site is enabled to `on`.
-    - `SSLCertificateFile`: Path to the .crt file (the public certificate)
-    - `SSLCertificateKeyFile`: Path to the .key file (the private key associated with the certificate).
+## Créditos
 
-### Step 4: Enable the SSL Site and SSL Module:
-- [ ] Use the following commands to enable the SSL module and load the HTTPS site configuration:
+Práctica basada en un ejercicio del **Bootcamp de Ciberseguridad de 4Geeks Academy**. La configuración, la verificación y la documentación de este repositorio son de elaboración propia.
 
-    ```sh
-    sudo a2enmod ssl
-    sudo a2ensite default-ssl
-    sudo systemctl reload apache2
-    ```
-### Step 5: Update the Hosts File:
-- [ ] Check the /etc/hosts file on your local machine (from where you access the virtual machine) to ensure that my-domain.com resolves to 127.0.0.1
-    ```sh
-    sudo nano /etc/hosts
-    ```
-  > 💡 Make sure to add the line:
-    * 127.0.0.1 my-domain.com
+## Autor
 
-- [ ] Restart the virtual machine to apply all changes
-
- 
-### Step 6: Test the Connection:
-- [ ] Open a web browser and enter the URL https://my-domain.com. You should see a security warning due to the self-signed certificate. Accept the risk and continue to see the default Apache page served over HTTPS.
-
-![my-domain.com](https://github.com/breatheco-de/set-up-an-SSL-in-openSSL-with-a-secure-server/blob/main/assets/https.png)
-
-
-> 💡 NOTE: For the purposes of this educational exercise, while using localhost with HTTPS (https://localhost/) is sufficient to demonstrate the basic setup of SSL/TLS using OpenSSL, including the configuration of a custom domain like my-domain.com provides a more comprehensive and practical learning experience. This additional step allows understanding how DNS resolution works in a real environment. When generating the SSL/TLS certificate, it is crucial that the domain name (Common Name) matches the domain used to access the server, thus avoiding errors and security warnings in browsers. This reinforces the understanding of essential concepts and enhances the practical skills needed to handle SSL/TLS configurations in a professional environment.
-
-## 🚛 How to submit this project?
-
-We have developed a script to help you measure your success during this project.
-
-- [ ] In the `./assets` folder, you will find the script [check_ssl.sh](https://github.com/breatheco-de/set-up-an-SSL-in-openSSL-with-a-secure-server/blob/main/assets/check_ssl.sh) that you should copy and paste onto the desktop of your Debian virtual machine.
-
-- [ ] Once you have pasted the script [check_ssl.sh](https://github.com/breatheco-de/set-up-an-SSL-in-openSSL-with-a-secure-server/blob/main/assets/check_ssl.sh) on your Debian machine, open the terminal and navigate to the directory where the script is located, in our case `./Desktop`, and make the script executable (if it is not already). This can be done using the `chmod` command:
-  ```sh
-  chmod +x check_ssl.sh
-  ```
-
-- [ ] Run the script specifying its name. You may also provide any necessary arguments. Assuming no additional arguments are needed for this example, you should run:
-  ```sh
-  ./check_ssl.sh
-  ```
-
-- [ ] **Upload your results.** Running the script will create a `report.json` file that you should copy and paste into the root of this project. 
+**Bryan Calderón Herrera** · Ciberseguridad | Redes y Telecomunicaciones
+[GitHub: cbry-96](https://github.com/cbry-96)
